@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Copyright (C) 2016 DirtyUnicorns
 # Copyright (C) 2016 Jacob McSwain
+# Copyright (C) 2017 Satyabrat Sahoo
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,13 +22,13 @@
 #    This script may be symlinked by a manifest so we need to account for that
 # 2. Get the folder containing the script with dirname
 # 3. Move into the folder that is two folder above that one and print it
-WORKING_DIR=$( cd $( dirname $( readlink -f "${BASH_SOURCE[0]}" ) )/../.. && pwd )
+WORKING_DIR=`pwd`
 
 # The tag you want to merge in goes here
-BRANCH=android-7.1.2_r17
+BRANCH=LA.BR.1.2.9_rb1.22
 
 # Google source url
-REPO=https://android.googlesource.com/platform/
+REPO=https://source.codeaurora.org/quic/la/platform/
 
 # This is the array of upstream repos we track
 upstream=()
@@ -35,11 +36,15 @@ upstream=()
 # This is the array of repos with merge errors
 failed=()
 
+# This is the array of repos successfully merged
+success=()
+
 # This is the array of repos to blacklist and not merge
-blacklist=('manifest' 'prebuilt' 'packages/apps/DeskClock' 'prebuilts/build-tools' 'hardware/qcom/*' 'packages/apps/MusicFX' 'external/libnetfilter_conntrack' 'external/libnfnetlink')
+blacklist=('manifest')
 
 # Colors
 COLOR_RED='\033[0;31m'
+COLOR_GREEN='\033[0;32m'
 COLOR_BLANK='\033[0m'
 
 function is_in_blacklist() {
@@ -69,8 +74,8 @@ function get_repos() {
   for i in ${repos[@]}
   do
     if grep -q "$i" /tmp/rebase.tmp; then # If Google has it and
-      if grep -q "$i" $WORKING_DIR/manifest/n7x_default.xml; then # If we have it in our manifest and
-        if grep "$i" $WORKING_DIR/manifest/n7x_default.xml | grep -q "remote="; then # If we track our own copy of it
+      if grep -q "$i" $WORKING_DIR/manifest/citrus-caf.xml; then # If we have it in our manifest and
+        if grep "$i" $WORKING_DIR/manifest/citrus-caf.xml | grep -q "remote="; then # If we track our own copy of it
           if ! is_in_blacklist $i; then # If it's not in our blacklist
             upstream+=("$i") # Then we need to update it
           else
@@ -105,8 +110,10 @@ function force_sync() {
 function merge() {
   cd $WORKING_DIR/$1
   git pull $REPO/$1.git -t $BRANCH
-  if [ $? -ne 0 ]; then # If merge failed
-    failed+=($1) # Add to the list
+  if [ $? -eq 0 ]; then
+    success+=($1) # Add to success list
+  else
+    failed+=($1) # Add to failed list
   fi
 }
 
@@ -120,6 +127,13 @@ function print_result() {
     echo -e $COLOR_RED
     echo -e "These repos have merge errors: \n"
     for i in ${failed[@]}
+    do
+      echo -e "$i"
+    done
+
+    echo -r $COLOR_GREEN
+    echo -e "These repos are successfully merged: \n"
+    for i in ${success[@]}
     do
       echo -e "$i"
     done
@@ -142,8 +156,8 @@ echo "         and deleting all upstream repos        "
 echo " This is done so we make sure you're up to date "
 echo "================================================"
 
-delete_upstream
-force_sync
+#delete_upstream
+#force_sync
 
 # Merge every repo in upstream
 for i in ${upstream[@]}
