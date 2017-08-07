@@ -25,10 +25,10 @@
 WORKING_DIR=`pwd`
 
 # The tag you want to merge in goes here
-BRANCH=LA.BR.1.2.9_rb1.22
+BRANCH=android-6.0.1_r80
 
-# CAF source url
-REPO=https://source.codeaurora.org/quic/la/platform/
+# Google source url
+REPO=https://android.googlesource.com/platform
 
 # This is the array of upstream repos we track
 upstream=()
@@ -74,15 +74,15 @@ function get_repos() {
   for i in ${repos[@]}
   do
     if grep -q "$i" /tmp/rebase.tmp; then # If Google has it and
-      if grep -q "$i" $WORKING_DIR/manifest/citrus-caf.xml; then # If we have it in our manifest and
-        if grep "$i" $WORKING_DIR/manifest/citrus-caf.xml | grep -q "remote="; then # If we track our own copy of it
+#      if grep -q "$i" $WORKING_DIR/manifest/citrus-caf.xml; then # If we have it in our manifest and
+#        if grep "$i" $WORKING_DIR/manifest/citrus-caf.xml | grep -q "remote="; then # If we track our own copy of it
           if ! is_in_blacklist $i; then # If it's not in our blacklist
             upstream+=("$i") # Then we need to update it
           else
             echo "$i is in blacklist"
           fi
-        fi
-      fi
+#        fi
+#      fi
     fi
   done
   rm /tmp/rebase.tmp
