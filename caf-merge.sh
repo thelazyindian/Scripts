@@ -131,7 +131,7 @@ function print_result() {
       echo -e "$i"
     done
 
-    echo -r $COLOR_GREEN
+    echo -e $COLOR_GREEN
     echo -e "These repos are successfully merged: \n"
     for i in ${success[@]}
     do
