@@ -1,10 +1,21 @@
 #!/bin/bash
-cd /home/thug/opengapps-arm64/
+HOME_DIR=/home/thug # Must be in the format /home/username (atleast 2 parent dir structure) for this script to work properly
+GAPPS_CLONE_DIR=opengapps-arm64
+GAPPS_DECOMPILE_DIR=opengapps-arm64-decompiled
+GAPPS_HTTPS_URL=https://github.com/opengapps/arm64
+GAPPS_SSH_URL=git@github.com:opengapps/arm64
+GAPPS_PUSH_SSH_URL=git@github.com:thelazyindian/opengapps_arm64_resources
+cd $HOME_DIR/
+git clone $GAPPS_SSH_URL -b master $HOME_DIR/$GAPPS_CLONE_DIR/ --depth 1
+git clone $GAPPS_PUSH_SSH_URL -b master $HOME_DIR/$GAPPS_DECOMPILE_DIR/
+cd $HOME_DIR/$GAPPS_CLONE_DIR/
 git pull origin master
-last_commit="https://github.com/opengapps/arm64/commit/$(git log --format="%H" -n 1)"
+last_commit="$GAPPS_HTTPS_URL/commit/$(git log --format="%H" -n 1)"
 last_commit_date="$(git show -s --format=%cd --date=short)"
+cd $HOME_DIR/$GAPPS_DECOMPILE_DIR/
+git commit --allow-empty -m "START: Update: $last_commit_date" -m "Last Commit: $last_commit"
 cd
-readarray -t array <<< "$(find /home/thug/opengapps-arm64/ -name "*.apk" | awk -F '/' '{print $1"/"$2"/"$3"/"$4"/"$5"/"$6"/" }')"
+readarray -t array <<< "$(find $HOME_DIR/$GAPPS_CLONE_DIR/ -name "*.apk" | awk -F '/' '{print $1"/"$2"/"$3"/"$4"/"$5"/"$6"/" }')"
 appsdir=($(printf '%s\n' "${array[@]}" | sort -u))
 #printf '%s\n' "${sorted[@]}"
 for app in "${appsdir[@]}"; do
@@ -24,9 +35,14 @@ for app in "${appsdir[@]}"; do
                 echo "Unpacking: "$app""$app2
                 echo "To Dir: "$decompile_dir
                 #echo "New Dir: "$newdir
+                appname="$(echo $decompile_dir | awk -F '/' '{print $5}')"
+                echo "AppName: $appname"
                 echo ""
                 rm -rf "$newdir"
                 apktool d $app2 -o $decompile_dir -s -f
+                cd $HOME_DIR/$GAPPS_DECOMPILE_DIR/
+                git add -A
+                git commit -m "Update $appname"
             done
         else
             decompile_dir="$(echo $newdir""$apk | sed 's%/[^/]*$%/%')"
@@ -34,21 +50,25 @@ for app in "${appsdir[@]}"; do
             echo "Unpacking: "$app""$apk
             echo "To Dir: "$decompile_dir
             #echo "New Dir: "$newdir
+            appname="$(echo $decompile_dir | awk -F '/' '{print $5}')"
+            echo "AppName: $appname"
             echo ""
             rm -rf "$newdir"
             apktool d $apk -o $decompile_dir -s -f
+            cd $HOME_DIR/$GAPPS_DECOMPILE_DIR/
+            git add -A
+            git commit -m "Update $appname"
         fi
     done
     printf '%s\n' "${grepval[@]}"
     cd
 done
-cd /home/thug/opengapps-arm64-decompiled/
+cd $HOME_DIR/$GAPPS_DECOMPILE_DIR/
 find . -name "*.yml" -type f -exec rm -rf "{}" \;
 find . -name "*.dex" -type f -exec rm -rf "{}" \;
 find . -name "unknown" -type d -exec rm -rf "{}" \;
 find . -name "lib" -type d -exec rm -rf "{}" \;
 find . -name "original" -type d -exec rm -rf "{}" \;
-git add -A
-git commit -m "Update: $last_commit_date" -m "Last Commit: $last_commit"
+git commit --allow-empty -m "END: Update: $last_commit_date" -m "Last Commit: $last_commit"
 git push origin master
 cd
