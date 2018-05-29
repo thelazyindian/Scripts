@@ -3,6 +3,7 @@
 HOME_DIR=/home/thug # Must be in the format /home/username (atleast 2 dir structure) for this script to work properly
 GAPPS_DECOMPILE_DIR=opengapps-arm64-decompiled
 GAPPS_PUSH_SSH_URL=git@github.com:ThemersHub/DecompiledApps
+GAPPS_CLONE_DIR=opengapps
 
 function rmvShits()
 {
@@ -24,6 +25,7 @@ function decRepo()
     last_commit="$GAPPS_HTTPS_URL/commit/$(git log --format="%H" -n 1)"
     last_commit_date="$(git show -s --format=%cd --date=short)"
     cd $HOME_DIR/$GAPPS_DECOMPILE_DIR/
+    changesMade=0
     git commit --allow-empty -m "START: Update: $last_commit_date Repo: $GAPPS_HTTPS_URL" -m "Last Commit: $last_commit"
     cd
     readarray -t array <<< "$(find $HOME_DIR/$GAPPS_CLONE_DIR/ -name "*.apk" | awk -F '/' '{print $1"/"$2"/"$3"/"$4"/"$5"/"$6"/" }')"
@@ -40,53 +42,68 @@ function decRepo()
                 readarray -t array2 <<< "$(find . -name "*.apk")"
                 appsdir2=($(printf '%s\n' "${array2[@]}" | sort -u))
                 for app2 in "${appsdir2[@]}"; do
-                    decompile_dir="$(echo $newdir""$app2 | sed 's%/[^/]*$%/%')"
                     echo ""
-                    echo "empty"
+                    decompile_dir="$(echo $newdir""$app2 | sed 's%/[^/]*$%/%')"
+                    appname="$(echo $decompile_dir | awk -F '/' '{print $5}')"
+                    echo "START Working on: $appname"
                     echo "Unpacking: "$app""$app2
                     echo "To Dir: "$decompile_dir
-                    appname="$(echo $decompile_dir | awk -F '/' '{print $5}')"
-                    echo "AppName: $appname"
-                    echo ""
                     rm -rf "$decompile_dir"
                     apktool d $app2 -o $decompile_dir -s -f
                     cd $HOME_DIR/$GAPPS_DECOMPILE_DIR/
                     rmvShits
-                    git add -A
-                    git commit -m "Update $appname"
+                    if [ -z "$(git status --porcelain)" ]; then
+                        echo "No changes to this"
+                    else
+                        echo "Changes have been made. Commiting now..."
+                        git add -A
+                        git commit -m "Update $appname"
+                        changesMade=1
+                    fi
+                    echo "END Working on: $appname"
+                    echo ""
                 done
             else
-                decompile_dir="$(echo $newdir""$apk | sed 's%/[^/]*$%/%')"
                 echo ""
+                decompile_dir="$(echo $newdir""$apk | sed 's%/[^/]*$%/%')"
+                appname="$(echo $decompile_dir | awk -F '/' '{print $5}')"
+                echo "START Working on: $appname"
                 echo "Unpacking: "$app""$apk
                 echo "To Dir: "$decompile_dir
-                appname="$(echo $decompile_dir | awk -F '/' '{print $5}')"
-                echo "AppName: $appname"
-                echo ""
                 rm -rf "$decompile_dir"
                 apktool d $apk -o $decompile_dir -s -f
                 cd $HOME_DIR/$GAPPS_DECOMPILE_DIR/
                 rmvShits
-                git add -A
-                git commit -m "Update $appname"
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to this"
+                else
+                    echo "Changes have been made. Commiting now..."
+                    git add -A
+                    git commit -m "Update $appname"
+                    changesMade=1
+                fi
+                echo "END Working on: $appname"
+                echo ""
             fi
         done
         printf '%s\n' "${grepval[@]}"
         cd
     done
     cd $HOME_DIR/$GAPPS_DECOMPILE_DIR/
-    git commit --allow-empty -m "END: Update: $last_commit_date" -m "Last Commit: $last_commit"
-    git push origin master
+    if [[ "$changesMade" -eq 1 ]]; then
+        git commit --allow-empty -m "END: Update: $last_commit_date Repo: $GAPPS_HTTPS_URL" -m "Last Commit: $last_commit"
+        git push origin master
+    else
+        git reset --hard HEAD~1 # Undo's the START commit if there are no updates to any of the apps hence no update commmits
+    fi
     cd
     rm -rf $HOME_DIR/$GAPPS_CLONE_DIR/
 }
 
-GAPPS_CLONE_DIR=opengapps-arm64
 GAPPS_HTTPS_URL=https://github.com/opengapps/arm64
 GAPPS_SSH_URL=git@github.com:opengapps/arm64
 decRepo
 
-#GAPPS_CLONE_DIR=opengapps-all
 GAPPS_HTTPS_URL=https://github.com/opengapps/all
 GAPPS_SSH_URL=git@github.com:opengapps/all
 decRepo
