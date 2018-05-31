@@ -3,7 +3,7 @@
 HOME_DIR=/home/thug # Must be in the format /home/username (atleast 2 dir structure) for this script to work properly
 GAPPS_DECOMPILE_DIR=opengapps-arm64-decompiled
 GAPPS_PUSH_SSH_URL=git@github.com:ThemersHub/DecompiledApps
-GAPPS_CLONE_DIR=opengapps
+GAPPS_CLONE_DIR=opengapps-arm64
 
 function rmvShits()
 {
